@@ -1,0 +1,110 @@
+#!/bin/bash
+# gparted-launch — GParted drive selector wrapper for Manjaro/Mabox
+# Select one drive; GParted opens on that device only.
+# (c) 2024 — LGPL v2.1
+
+set -euo pipefail
+
+# ── dependencies ─────────────────────────────────────────────────────────────────
+
+_need() {
+    if ! command -v "$1" &>/dev/null; then
+        yad --center --title="GParted launcher" \
+            --image=dialog-error \
+            --text="<b>Missing dependency:</b> <tt>$1</tt>\n\nInstall it first:\n<tt>sudo pacman -S $2</tt>" \
+            --button="OK:0" 2>/dev/null \
+        || notify-send -i dialog-error "GParted launcher" "'$1' is not installed."
+        exit 1
+    fi
+}
+
+_need gparted  gparted
+_need yad      yad
+_need lsblk    util-linux
+
+# ── icon ─────────────────────────────────────────────────────────────────────────
+
+GPICON=""
+for candidate in \
+    /usr/share/pixmaps/gparted.png \
+    /usr/share/icons/hicolor/48x48/apps/gparted.png \
+    /usr/share/icons/hicolor/scalable/apps/gparted.svg \
+    /usr/share/pixmaps/gparted.xpm
+do
+    [[ -f "$candidate" ]] && { GPICON="$candidate"; break; }
+done
+[[ -z "$GPICON" ]] && GPICON="drive-harddisk"
+
+# ── build drive list ──────────────────────────────────────────────────────────────
+
+mapfile -t DRIVES < <(
+    lsblk -dno NAME,TYPE,SIZE,TRAN,MODEL 2>/dev/null \
+    | awk '$2=="disk" && $1!~/^sr/ {print $1, $3, $4, $5, $6, $7, $8}'
+)
+
+if [[ ${#DRIVES[@]} -eq 0 ]]; then
+    yad --center --title="GParted launcher" \
+        --image=dialog-warning \
+        --text="No block devices found." \
+        --button="OK:0" 2>/dev/null
+    exit 1
+fi
+
+# Build radiolist rows: TRUE/FALSE  LABEL  DEVICE_PATH
+RADIO_LIST=()
+first=true
+for entry in "${DRIVES[@]}"; do
+    read -r NAME SIZE TRAN MODEL_PARTS <<< "$entry"
+
+    case "$TRAN" in
+        usb)  TRANSPORT="USB drive"    ;;
+        nvme) TRANSPORT="NVMe drive"   ;;
+        sata) TRANSPORT="SATA drive"   ;;
+        ata)  TRANSPORT="ATA drive"    ;;
+        mmc)  TRANSPORT="MMC/SD card"  ;;
+        *)    TRANSPORT="disk"         ;;
+    esac
+
+    LABEL="${NAME}  [${TRANSPORT}]  ${SIZE}  ${MODEL_PARTS}"
+
+    if $first; then
+        RADIO_LIST+=(TRUE "$LABEL" "/dev/$NAME")
+        first=false
+    else
+        RADIO_LIST+=(FALSE "$LABEL" "/dev/$NAME")
+    fi
+done
+
+# ── dialog ────────────────────────────────────────────────────────────────────────
+
+CHOICE=$(
+    yad --center \
+        --title="GParted — select drive" \
+        --window-icon="$GPICON" \
+        --image="$GPICON" \
+        --image-on-top \
+        --text="<b>GParted partition editor</b>\n\nSelect a drive and click <i>Launch</i>.\nFor a different drive, close GParted and run this again." \
+        --list \
+        --radiolist \
+        --no-headers \
+        --column=""          \
+        --column="Drive"     \
+        --column="Device":HD \
+        --print-column=3     \
+        --separator=$'\n'    \
+        --width=560 --height=300 \
+        --button="gtk-cancel:1" \
+        --button="Launch GParted:0" \
+        "${RADIO_LIST[@]}" 2>/dev/null
+) || exit 0
+
+CHOICE="$(grep -v '^$' <<< "$CHOICE" | head -1)"
+
+[[ -z "$CHOICE" ]] && exit 0
+
+# ── launch ────────────────────────────────────────────────────────────────────────
+
+pkexec env \
+    DISPLAY="$DISPLAY" \
+    XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" \
+    bash -c "gparted $(printf '%q' "$CHOICE")"
