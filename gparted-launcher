@@ -109,7 +109,7 @@ CHOICE=$(
         --print-column=3     \
         --separator=$'\n'    \
         --width=560 --height=300 \
-        --button="gtk-cancel:1" \
+        --button="cancel:1" \
         --button="Launch GParted:0" \
         "${RADIO_LIST[@]}" 2>/dev/null
 ) || exit 0
