@@ -120,8 +120,7 @@ done
 # ── dialog ────────────────────────────────────────────────────────────────────────
 
 CHOICE=$(
-    yad --center \
-        --title="$TITLE_DLG" \
+    yad --title="$TITLE_DLG" \
         --window-icon="$GPICON" \
         --image="$GPICON" \
         --image-on-top \
