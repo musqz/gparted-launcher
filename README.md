@@ -2,6 +2,8 @@
 
 A lightweight GParted wrapper for Linux.
 
+![Image](https://github.com/user-attachments/assets/8eafc5a4-edde-4431-a380-cca7c2b34a53)
+
 Inspired by the original `gparted_shell` from Puppy Linux, rewritten for modern Linux systems using `yad` and `lsblk` instead of `gtkdialog` and `probedisk`.
 
 ## Why this wrapper
