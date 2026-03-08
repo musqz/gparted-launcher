@@ -3,33 +3,59 @@
 # gparted-launch — GParted drive selector wrapper for Linux systems.
 # Select one drive; GParted opens on that device only.
 # MIT License 2026 Musqz
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
 set -euo pipefail
+
+# ── translations ─────────────────────────────────────────────────────────────────
+
+case "${LANGUAGE:-$LANG}" in
+    nl*)
+        TITLE_ERR="GParted starter"
+        TITLE_DLG="GParted — schijf selecteren"
+        TEXT_DEP="<b>Ontbrekende afhankelijkheid:</b> <tt>%s</tt>\n\nInstalleer het eerst:\n<tt>sudo pacman -S %s</tt>"
+        TEXT_NODEV="Geen blokschijven gevonden."
+        TEXT_DLG="<b>GParted partitie-editor</b>\n\nSelecteer een schijf en klik op <i>Starten</i>.\nVoor een andere schijf, sluit GParted en start dit opnieuw."
+        BTN_CANCEL="annuleren:1"
+        BTN_LAUNCH="GParted starten:0"
+        ;;
+    pl*)
+        TITLE_ERR="Uruchamiacz GParted"
+        TITLE_DLG="GParted — wybierz dysk"
+        TEXT_DEP="<b>Brakujący zależny program:</b> <tt>%s</tt>\n\nZainstaluj go najpierw:\n<tt>sudo pacman -S %s</tt>"
+        TEXT_NODEV="Nie znaleziono urządzeń blokowych."
+        TEXT_DLG="<b>Edytor partycji GParted</b>\n\nWybierz dysk i kliknij <i>Uruchom</i>.\nAby wybrać inny dysk, zamknij GParted i uruchom ten skrypt ponownie."
+        BTN_CANCEL="anuluj:1"
+        BTN_LAUNCH="Uruchom GParted:0"
+        ;;
+    es*)
+        TITLE_ERR="Lanzador de GParted"
+        TITLE_DLG="GParted — seleccionar unidad"
+        TEXT_DEP="<b>Dependencia faltante:</b> <tt>%s</tt>\n\nInstálala primero:\n<tt>sudo pacman -S %s</tt>"
+        TEXT_NODEV="No se encontraron dispositivos de bloque."
+        TEXT_DLG="<b>Editor de particiones GParted</b>\n\nSelecciona una unidad y haz clic en <i>Iniciar</i>.\nPara una unidad diferente, cierra GParted y ejecuta esto de nuevo."
+        BTN_CANCEL="cancelar:1"
+        BTN_LAUNCH="Iniciar GParted:0"
+        ;;
+    *)
+        TITLE_ERR="GParted launcher"
+        TITLE_DLG="GParted — select drive"
+        TEXT_DEP="<b>Missing dependency:</b> <tt>%s</tt>\n\nInstall it first:\n<tt>sudo pacman -S %s</tt>"
+        TEXT_NODEV="No block devices found."
+        TEXT_DLG="<b>GParted partition editor</b>\n\nSelect a drive and click <i>Launch</i>.\nFor a different drive, close GParted and run this again."
+        BTN_CANCEL="cancel:1"
+        BTN_LAUNCH="Launch GParted:0"
+        ;;
+esac
 
 # ── dependencies ─────────────────────────────────────────────────────────────────
 
 _need() {
     if ! command -v "$1" &>/dev/null; then
-        yad --center --title="GParted launcher" \
+        yad --center --title="$TITLE_ERR" \
             --image=dialog-error \
-            --text="<b>Missing dependency:</b> <tt>$1</tt>\n\nInstall it first:\n<tt>sudo pacman -S $2</tt>" \
+            --text="$(printf "$TEXT_DEP" "$1" "$2")" \
             --button="OK:0" 2>/dev/null \
-        || notify-send -i dialog-error "GParted launcher" "'$1' is not installed."
+        || notify-send -i dialog-error "$TITLE_ERR" "'$1' is not installed."
         exit 1
     fi
 }
@@ -55,13 +81,13 @@ done
 
 mapfile -t DRIVES < <(
     lsblk -dno NAME,TYPE,SIZE,TRAN,MODEL 2>/dev/null \
-    | awk '$2=="disk" && $1!~/^sr/ {print $1, $3, $4, $5, $6, $7, $8}'
+    | awk '$2=="disk" && $1!~/^sr/ {print $1, $3, $4, $5}'
 )
 
 if [[ ${#DRIVES[@]} -eq 0 ]]; then
-    yad --center --title="GParted launcher" \
+    yad --center --title="$TITLE_ERR" \
         --image=dialog-warning \
-        --text="No block devices found." \
+        --text="$TEXT_NODEV" \
         --button="OK:0" 2>/dev/null
     exit 1
 fi
@@ -70,7 +96,7 @@ fi
 RADIO_LIST=()
 first=true
 for entry in "${DRIVES[@]}"; do
-    read -r NAME SIZE TRAN MODEL_PARTS <<< "$entry"
+    read -r NAME SIZE TRAN MODEL <<< "$entry"
 
     case "$TRAN" in
         usb)  TRANSPORT="USB drive"    ;;
@@ -81,7 +107,7 @@ for entry in "${DRIVES[@]}"; do
         *)    TRANSPORT="disk"         ;;
     esac
 
-    LABEL="${NAME}  [${TRANSPORT}]  ${SIZE}  ${MODEL_PARTS}"
+    LABEL="${NAME}  [${TRANSPORT}]  ${SIZE}  ${MODEL}"
 
     if $first; then
         RADIO_LIST+=(TRUE "$LABEL" "/dev/$NAME")
@@ -95,11 +121,11 @@ done
 
 CHOICE=$(
     yad --center \
-        --title="GParted — select drive" \
+        --title="$TITLE_DLG" \
         --window-icon="$GPICON" \
         --image="$GPICON" \
         --image-on-top \
-        --text="<b>GParted partition editor</b>\n\nSelect a drive and click <i>Launch</i>.\nFor a different drive, close GParted and run this again." \
+        --text="$TEXT_DLG" \
         --list \
         --radiolist \
         --no-headers \
@@ -109,8 +135,8 @@ CHOICE=$(
         --print-column=3     \
         --separator=$'\n'    \
         --width=560 --height=300 \
-        --button="cancel:1" \
-        --button="Launch GParted:0" \
+        --button="$BTN_CANCEL" \
+        --button="$BTN_LAUNCH" \
         "${RADIO_LIST[@]}" 2>/dev/null
 ) || exit 0
 
@@ -120,7 +146,4 @@ CHOICE="$(grep -v '^$' <<< "$CHOICE" | head -1)"
 
 # ── launch ────────────────────────────────────────────────────────────────────────
 
-pkexec env \
-    DISPLAY="$DISPLAY" \
-    XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" \
-    bash -c "gparted $(printf '%q' "$CHOICE")"
+pkexec env DISPLAY="$DISPLAY" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" gparted "$CHOICE"
