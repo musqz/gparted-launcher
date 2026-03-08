@@ -1,6 +1,6 @@
-# gparted-launch
+# gparted-launch 
 
-A lightweight GParted wrapper for Linux.
+A lightweight GParted wrapper for Linux. (en, pl, es, nl)
 
 ![Image](https://github.com/user-attachments/assets/8eafc5a4-edde-4431-a380-cca7c2b34a53)
 
