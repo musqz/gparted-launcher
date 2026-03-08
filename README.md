@@ -41,13 +41,13 @@ Run from terminal or launch via menu:
 gparted-launch
 ```
 
-A dialog lists all detected drives with name, type, size and model. 
+- A dialog lists all detected drives with name, type, size and model. 
 
-Select one and click **Launch**. 
+- Select one and click **Launch**. 
 
-GParted opens directly on that device. 
+- GParted opens directly on that device. 
 
-To work on a different drive, close GParted and run the launcher again.
+- To work on a different drive, close GParted and run the launcher again.
 
 ## License
 
