@@ -17,6 +17,7 @@ case "${LANGUAGE:-$LANG}" in
         TEXT_DLG="<b>GParted partitie-editor</b>\n\nSelecteer een schijf en klik op <i>Starten</i>.\nVoor een andere schijf, sluit GParted en start dit opnieuw."
         BTN_CANCEL="annuleren:1"
         BTN_LAUNCH="GParted starten:0"
+        TEXT_ALL_DRIVES="<b>Toon alle schijven (start GParted GUI)</b>"
         ;;
     pl*)
         TITLE_ERR="Uruchamiacz GParted"
@@ -26,6 +27,7 @@ case "${LANGUAGE:-$LANG}" in
         TEXT_DLG="<b>Edytor partycji GParted</b>\n\nWybierz dysk i kliknij <i>Uruchom</i>.\nAby wybrać inny dysk, zamknij GParted i uruchom ten skrypt ponownie."
         BTN_CANCEL="anuluj:1"
         BTN_LAUNCH="Uruchom GParted:0"
+        TEXT_ALL_DRIVES="<b>Pokaż wszystkie dyski (uruchom GParted GUI)</b>"
         ;;
     es*)
         TITLE_ERR="Lanzador de GParted"
@@ -35,6 +37,7 @@ case "${LANGUAGE:-$LANG}" in
         TEXT_DLG="<b>Editor de particiones GParted</b>\n\nSelecciona una unidad y haz clic en <i>Iniciar</i>.\nPara una unidad diferente, cierra GParted y ejecuta esto de nuevo."
         BTN_CANCEL="cancelar:1"
         BTN_LAUNCH="Iniciar GParted:0"
+        TEXT_ALL_DRIVES="<b>Mostrar todas las unidades (iniciar GParted GUI)</b>"
         ;;
     *)
         TITLE_ERR="GParted launcher"
@@ -44,6 +47,7 @@ case "${LANGUAGE:-$LANG}" in
         TEXT_DLG="<b>GParted partition editor</b>\n\nSelect a drive and click <i>Launch</i>.\nFor a different drive, close GParted and run this again."
         BTN_CANCEL="cancel:1"
         BTN_LAUNCH="Launch GParted:0"
+        TEXT_ALL_DRIVES="<b>Show all drives (launch GParted GUI)</b>"
         ;;
 esac
 
@@ -117,6 +121,9 @@ for entry in "${DRIVES[@]}"; do
     fi
 done
 
+# Add "Select All" option at the bottom
+RADIO_LIST+=(FALSE "$TEXT_ALL_DRIVES" "ALL_DRIVES")
+
 # ── dialog ────────────────────────────────────────────────────────────────────────
 
 CHOICE=$(
@@ -133,7 +140,7 @@ CHOICE=$(
         --column="Device":HD \
         --print-column=3     \
         --separator=$'\n'    \
-        --width=560 --height=300 \
+        --width=560 --height=320 \
         --button="$BTN_CANCEL" \
         --button="$BTN_LAUNCH" \
         "${RADIO_LIST[@]}" 2>/dev/null
@@ -145,4 +152,8 @@ CHOICE="$(grep -v '^$' <<< "$CHOICE" | head -1)"
 
 # ── launch ────────────────────────────────────────────────────────────────────────
 
-pkexec env DISPLAY="$DISPLAY" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" gparted "$CHOICE"
+if [[ "$CHOICE" == "ALL_DRIVES" ]]; then
+    pkexec env DISPLAY="$DISPLAY" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" gparted
+else
+    pkexec env DISPLAY="$DISPLAY" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" gparted "$CHOICE"
+fi
