@@ -22,19 +22,21 @@ One drive, one window, on purpose.
 | `yad` | GTK dialog for drive selection |
 | `lsblk` | Drive detection (part of `util-linux`) |
 
-## Installation
+### Installation
 
-```bash
-chmod +x gparted-launch
-cp gparted-launch /path/to/bin
+1. **Make the script executable and install it to a directory in your `$PATH`:**
+   ```bash
+   chmod +x gparted-launch
+   sudo cp gparted-launch ~/.local/bin/
+   ```
+   *(Replace `~/.local/bin/` with your preferred location, e.g., `~/bin/` if it exists or `/usr/local/bin/`.)*
 
-```
-
-Optionally add the example `.desktop` file to your application menu:
-
-```bash
-cp gparted.desktop ~/.local/share/applications/
-```
+2. **(Optional) Install the desktop shortcut:**
+   - Edit `gparted.desktop` and update the `Exec=` line to match the path where you installed `gparted-launch`.
+   - Copy the file to your applications directory:
+     ```bash
+     cp gparted.desktop ~/.local/share/applications/
+     ```
 
 ## Usage
 
